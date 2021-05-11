@@ -2,7 +2,7 @@
 ====================================================
 Our method can use Tree split sizes or Site Frequency Spectrum as a statistic to infer tree imbalance. To use our program, just clone the repository:
 ```bash
-git clone https://github.com/enesdilber/bim.git
+git clone https://github.com/jthlab/bim.git
 cd bim
 ```
 In your python session follow the steps.
@@ -90,7 +90,7 @@ FerL: 0.130
 
 Using Genotype matrix
 ---------------------
-See this [example](https://github.com/enesdilber/bim-paper/blob/main/Examples/Demo.ipynb).
+See this [example](https://github.com/jthlab/bim-paper/blob/main/Examples/Demo.ipynb).
 
 
 Command line interface
@@ -133,12 +133,13 @@ Option list:
 * --ssz=`stride_size` (default `None`): Stride size for windowed statistic.
 * --pop=`population_id` (default `None`): See [tskit page](https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence.population) 
 * --out=`out_path` (default `bim.csv`): Output for csv file.
-* --eta=`eta_path` (default `None`): Path for population size estimates. See the [example](https://github.com/enesdilber/bim-paper/blob/main/1000GenomesProject/Population_Size_Estimates.ipynb).
-* --log_pdf=`log_pdf` (default `logfs`): log pdf of a splitting function. Only `logfs` and `logfr` available. See the paper.
+* --eta=`eta_path` (default `None`): Path for population size estimates. See the [example](https://github.com/jthlab/bim-paper/blob/main/1000GenomesProject/Population_Size_Estimates.ipynb).
+* --log_pdf=`log_pdf` (default `logfs`): log pdf of a splitting function. 
 * --r1t=`penalizer` (default `0`): l1 penalty for beta-Tree likelihood.
 * --r2t=`penalizer` (default `0`): l2 penalty for beta-Tree likelihood.
 * --r1s=`penalizer` (default `0`): l1 penalty for beta-SFS likelihood.
 * --r2s=`penalizer` (default `0`): l2 penalty for beta-SFS likelihood.
+* --treew=`likelihood_weights` (default `split`): weighting method for beta-Tree likelihood. `split`, `branch` or `None`.
 ------------
 * Usage with only tree statistics with windows
 ```bash
@@ -181,6 +182,6 @@ Population size option (`--eta`) only accounted in `bsfs`. You can see it only c
 
 More Examples
 ======================
-* [Demo](https://github.com/enesdilber/bim-paper/blob/main/Examples/Demo.ipynb) 
-* [Real Data: 1000 Genomes Project LCT example](https://github.com/enesdilber/bim-paper/blob/main/Examples/1000_genome_LCT_3pop_demo.ipynb) 
-* [Time Complexity under neutral mutation](https://github.com/enesdilber/bim-paper/blob/main/Examples/Time_complexity.ipynb)
+* [Demo](https://github.com/jthlab/bim-paper/blob/main/Examples/Demo.ipynb) 
+* [Real Data: 1000 Genomes Project LCT example](https://github.com/jthlab/bim-paper/blob/main/Examples/1000_genome_LCT_3pop_demo.ipynb) 
+* [Time Complexity under neutral mutation](https://github.com/jthlab/bim-paper/blob/main/Examples/Time_complexity.ipynb)
