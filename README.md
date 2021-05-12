@@ -143,7 +143,7 @@ Option list:
 ------------
 * Usage with only tree statistics with windows
 ```bash
-python BIM.py test.trees 30 --stat=btree,Colless
+python BIM.py test.trees 30 --stat=btree,Colless --tsz=1
 ```
 Here is the head of data frame
 |    |    start |      end |   N |     btree |   Colless | path       |
