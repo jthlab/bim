@@ -1,4 +1,4 @@
-&beta;-Imbalance (BIM): Detecting natural selection using a probabilistic model of tree imbalance
+Software for &beta;-Imbalance (BIM): Robust detection of natural selection using a probabilistic model of tree imbalance
 ====================================================
 Our method can use Tree split sizes or Site Frequency Spectrum as a statistic to infer tree imbalance. To use our program, just clone the repository:
 ```bash
