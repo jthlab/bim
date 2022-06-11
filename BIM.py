@@ -4,7 +4,7 @@ import tskit
 import numpy as np
 import pandas as pd
 
-from utils import Colless, Neutrality_Tests, intersect_with_weights, slidingSFS, tree_to_splits
+from utils import Colless, Omega, Neutrality_Tests, intersect_with_weights, slidingSFS, tree_to_splits
 
 class tree_neutrality:
     
@@ -13,7 +13,7 @@ class tree_neutrality:
                  eta_path = None,
                  rho1_tree = 0., rho2_tree = 0.,
                  rho1_sfs = 0., rho2_sfs = 0.,
-                 pop = None, log_pdf = None, weights = 'None'):
+                 pop = None, log_pdf = None, weights = 'None', abeta = 0.):
         nt = Neutrality_Tests(N)
 
         # sfs based stats:
@@ -50,10 +50,12 @@ class tree_neutrality:
         Tstatf = {}
         for stat in Tstat:
             if stat == 'btree':
-                btree = bTree(N, rho1=rho1_tree, rho2=rho2_tree, log_pdf=log_pdf)
+                btree = bTree(N, rho1=rho1_tree, rho2=rho2_tree, log_pdf=log_pdf, abeta=abeta)
                 Tstatf[stat] = lambda n, k, w: float(btree.predict(n, k, w).x) # weighted likelihood
             if stat == 'Colless':
                 Tstatf[stat] = lambda n, k, w: Colless(n, k)
+            if stat == 'Omega':
+                Tstatf[stat] = lambda n, k, w: Omega(n, k, top = 4)
         def calcTstat(n, k, w):
             return {stat:Tstatf[stat](n, k, w) for stat in Tstat}
         
@@ -68,6 +70,7 @@ class tree_neutrality:
         self.N = N
         self.pop = pop
         self.weights = weights
+        self.abeta = abeta
         
     def predict(self, ts):      
         
@@ -130,7 +133,7 @@ class tree_neutrality:
             for i in range(ntrees):
                 Tree = next(trees)
                 tst, ten = Tree.interval
-                n, k = tree_to_splits(Tree)['splits']
+                n, k = tree_to_splits(Tree, self.abeta)['splits']
                 
                 if weights == 'branch':
                     bls = np.array([Tree.time(i) for i in Tree.nodes(order = 'timedesc') if Tree.is_internal(i)]+[0])
@@ -190,8 +193,9 @@ def main():
     r2s = 0. #l2 penalty for beta-sfs
     log_pdf = None
     weights = 'split'
+    abeta = 0.
     
-    tstats = ['btree', 'Colless']
+    tstats = ['btree', 'Colless', 'Omega']
     sstats = ['bsfs', 'TajD', 'FayH', 'ZngE', 'FerL', 'FulD']
     stats = tstats + sstats
     
@@ -244,7 +248,10 @@ def main():
             
             elif k == 'treew':
                 weights = v
-                
+            
+            elif k == 'abeta':
+                abeta = float(v)
+            
             else:
                 print('Unknown variable:', k)
 
@@ -273,7 +280,7 @@ def main():
                          eta_path = eta_path,
                          rho1_tree = r1t, rho2_tree = r2t,
                          rho1_sfs = r1s, rho2_sfs = r2s,
-                         pop = pop, log_pdf = log_pdf, weights = weights)
+                         pop = pop, log_pdf = log_pdf, weights = weights, abeta = abeta)
     
 
     

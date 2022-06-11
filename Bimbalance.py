@@ -409,8 +409,10 @@ class bTree:
     log_pdf: function
         It is the splitting distribution, takes n,k,beta.
         n: node size, k: children size, beta is the splitting parameter
+    abeta: float
+        aldous beta-splitting to solve polytomies default is 0
     '''
-    def __init__(self, N, rho1 = 0., rho2 = 0., frac = None, log_pdf = logfs):    
+    def __init__(self, N, rho1 = 0., rho2 = 0., frac = None, log_pdf = logfs, abeta = 0.):    
         
         if frac is not None:
             N1 = N-1
@@ -435,6 +437,7 @@ class bTree:
         self.rho2 = rho2
         self.cfinder = re.compile('\(\d+\,\d+\)') # find the merges from the newick tree
         self.success = None
+        self.abeta = abeta
         
         test = self.predict(np.arange(2,N+1), np.arange(1, N))
         if not test.success:
@@ -454,7 +457,7 @@ class bTree:
             splits.
 
         '''
-        return tree_to_splits(Tree)
+        return tree_to_splits(Tree, self.abeta)
         
     def newick_to_splits(self, newick):
         '''

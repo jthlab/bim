@@ -1,6 +1,9 @@
 from functools import partial, lru_cache
 from dataclasses import dataclass
-
+import jax
+import jax.numpy as jnp
+from jax.scipy.special import gammaln as LG
+jax.config.update("jax_enable_x64", True)
 import pandas as pd
 import scipy
 import numpy as np
@@ -8,6 +11,149 @@ import numpy as np
 from gmpy2 import mpq
 import gmpy2
 gmpy2.get_context().precision = 1000
+
+@partial(jax.jit)
+def logBB(n, k, beta, gamma):
+    '''
+    Computes log pdf of beta-binomial.
+
+    Parameters
+    ----------
+    n : ndarray
+        size of the parent node.
+    k : ndarray
+        size of the left (or right) child node.
+    beta, gamma : ndarray
+        imbalance parameter.    
+
+    Returns
+    -------
+    float
+        log pdf of beta-binomial.
+
+    '''
+    T1 = LG(n+1) - LG(k+1) - LG(n-k+1)
+    T2 = LG(k+beta) + LG(n-k+gamma) - LG(n+beta+gamma)
+    T3 = LG(beta+gamma) - LG(beta) - LG(gamma)
+    return T1 + T2 + T3
+
+@partial(jax.jit)
+def BB(n, k, beta, gamma):
+    '''
+    Computes pdf of beta-binomial.
+
+    Parameters
+    ----------
+    n : ndarray
+        size of the parent node.
+    k : ndarray
+        size of the left (or right) child node.
+    beta, gamma : ndarray
+        imbalance parameter.    
+
+    Returns
+    -------
+    float
+        pdf of beta-binomial.
+
+    '''
+    return jnp.exp(logBB(n, k, beta, gamma))
+
+@partial(jax.jit)
+def logfr(n, k, beta):
+    '''
+    reflected beta-binomial
+    log of the fr in the paper    
+    
+    Parameters
+    ----------
+    n : ndarray or int
+        number of sample the node subtends to.
+    k : ndarray or int (same size with n)
+        number of sample the right (or left) child subtends to.
+    beta : float (0, \infnty)
+        beta-splitting parameter.
+
+    Returns
+    -------
+    ndarray or float (same size with n)
+
+    '''
+    l = n//2+1
+    g = 1
+
+    normalizer = jnp.log(2)+jnp.log1p(-BB(l,0,beta,g)-BB(l,l,beta,g))
+    normalizer = normalizer - (1-jnp.mod(n,2))*BB(l,l-1,beta,g)
+    return jnp.where(k>=l, logBB(l,n-k,beta,g), logBB(l,k,beta,g))-normalizer
+
+@partial(jax.jit)
+def logfs(n, k, beta):
+    '''
+    log of fs in the paper, eq 3    
+    
+    Parameters
+    ----------
+    n : ndarray or int
+        number of sample the node subtends to.
+    k : ndarray or int (same size with n)
+        number of sample the right (or left) child subtends to.
+    beta : float (0, \infnty)
+        beta-splitting parameter.
+        
+    Returns
+    -------
+    ndarray or float (same size with n)
+    '''
+    normalizer = jnp.log1p(-2*BB(n,0,beta,beta))
+    return logBB(n, k, beta, beta) - normalizer
+
+@partial(jax.jit)
+def fs(n, k, beta):
+    '''
+    fs in the paper, eq 3    
+    
+    Parameters
+    ----------
+    n : ndarray or int
+        number of sample the node subtends to.
+    k : ndarray or int (same size with n)
+        number of sample the right (or left) child subtends to.
+    beta : float (0, \infnty)
+        beta-splitting parameter.
+        
+    Returns
+    -------
+    ndarray or float (same size with n)
+    '''
+    normalizer = 1-2*BB(n,0,beta,beta)
+    return BB(n, k, beta, beta)/normalizer
+
+@partial(jax.jit)
+def fr(n, k, beta):
+    '''
+    reflected beta-binomial
+    log of the fr in the paper    
+    
+    Parameters
+    ----------
+    n : ndarray or int
+        number of sample the node subtends to.
+    k : ndarray or int (same size with n)
+        number of sample the right (or left) child subtends to.
+    beta : float (0, \infnty)
+        beta-splitting parameter.
+
+    Returns
+    -------
+    ndarray or float (same size with n)
+
+    '''
+    l = n//2+1
+    g = 1.
+
+    normalizer = 2*(1-BB(l,0,beta,g)-BB(l,l,beta,g))
+    normalizer = normalizer - (1-jnp.mod(n,2))*BB(l,l-1,beta,g)
+    return jnp.where(k>=l, BB(l,n-k,beta,g), BB(l,k,beta,g))/normalizer
 
 def H(N):
     '''
@@ -227,6 +373,31 @@ def Colless(n, k):
     '''
     N = len(n) + 1
     return 2*np.abs(n-2*k).sum()/(N-1)/(N-2)
+
+def Omega(n, k, top = 3): 
+    '''
+    Compute Omega statistic (Li & Wiele 2013)
+
+    Parameters
+    ----------
+    n : ndarray
+        number of sample the node subtends to.
+    k : ndarray
+        number of sample the right (or left) child subtends to.
+    top : int
+          number of nodes from the top of the tree to include in the statistic
+    
+    Returns
+    -------
+    float
+        Returns T_{top} in equation 14 in the paper
+
+    '''
+    n, k = n[-top:], k[-top:]
+    omega = np.min(np.array((k, n-k)), 0)
+    omega = 2*omega/n - 0.5
+    omega = np.sqrt(12/len(n))*omega.sum()
+    return omega
    
 @lru_cache(None)
 def _W(N):
@@ -276,7 +447,7 @@ class InferEta:
         self.m = m
         D = (jnp.eye(m, k=0) - jnp.eye(m, k=-1))
         A = jnp.eye(m)
-        A = jax.ops.index_update(A, jax.ops.index[0, 0], 0)
+        A = A.at[0, 0].set(0)
         self.D1 = A @ D  # 1st difference matrix        
         
         yref = jnp.ones(self.m)
@@ -530,63 +701,96 @@ def intersect_with_weights(bs, be, cps, cpe, y):
     
     return dx_new  
 
-def tree_to_splits(Tree):
-        '''
-        Calculate size of the parent node and size of the left child for a given tree
+@lru_cache(None)
+def get_ps(pm, abeta):
+    beta = abeta/2+1
+    vals = np.arange(1, pm)
+    ps = fs(pm, vals, beta)
+    return ps
 
-        Parameters
-        ----------
-        Tree : tskit.trees.Tree
-
-        Returns
-        -------
-        dict
-            splits.
-
-        '''
-        N = Tree.num_samples()
-        n = np.zeros(N-1, dtype = 'int16')
-        k = np.zeros(N-1, dtype = 'int16') 
+def rsplit(masses, abeta, polsplits):
+    '''
+    masses is the list of number of samples subtend from each children
+    abeta is the aldous' beta for the split (default is 0)
+    returns mass of the left and right child
+    '''
     
-        np.random.seed(1)
-        np.random.seed(int(Tree.get_index()*Tree.get_length())%(2**32-1))
-        
-        mass = {}
-        ind = 0
-        for i in Tree.nodes(order = 'timeasc'):
-            children = list(Tree.children(i))
-            lenc = len(children)
+    nchildren = len(masses)
+    
+    if nchildren == 1:
+        return None
+    else:
+        ps = get_ps(nchildren, abeta)
+        c = np.random.choice(range(1, nchildren), p = ps)
+        lc, rc = masses[:c], masses[c:]
+        polsplits['n'].append(sum(masses))
+        polsplits['k'].append(sum(lc))
+        return rsplit(lc, abeta, polsplits), rsplit(rc, abeta, polsplits)
+    
+def split_polytomy(masses, abeta = 0):
+    '''
+    it splits the mass in the polytomy by aldous's beta
+    '''
+    polsplits = {'n':[], 'k':[]}
+    rsplit(masses, abeta, polsplits)
+    return polsplits
 
-            if lenc == 0: # leaf
-                mass[i] = 1 
-            elif lenc == 2: #bifurcating
-                rm = mass[children[0]]
-                lm = mass[children[1]]                
-                pm = rm+lm
+def tree_to_splits(Tree, abeta = 0):
+    '''
+    Calculate size of the parent node and size of the left child for a given tree
 
-                mass[i] = pm
+    Parameters
+    ----------
+    Tree : tskit.trees.Tree
+    abeta: Aldous' beta (-2, infinity) default is 0
 
-                k[ind] = rm
-                n[ind] = pm
-                ind += 1  
-            else: #polytomy
-                left = children
+    Returns
+    -------
+    dict
+        splits.
 
-                for j in range(1, lenc):
-                    np.random.shuffle(left) # shuffle children left
-                    s, left = left[:2], left[2:] # select 2 to coalesce rest is still in
+    '''
+    
+    N = Tree.num_samples()
+    n = np.zeros(N-1, dtype = 'int16')
+    k = np.zeros(N-1, dtype = 'int16') 
 
-                    rm = mass[s[0]]
-                    lm = mass[s[1]]     
-                    pm = rm+lm
-                    k[ind] = rm
-                    n[ind] = pm
-                    ind += 1
-                    mass[-j] = pm # this is the mass for coalesced children             
-                    left = left+[-j] # add to what's left
-                mass[i] = pm
+    np.random.seed(1)
+    np.random.seed(int(Tree.get_index()*Tree.get_length())%(2**32-1))
 
-        return {'splits': (n, k)}
+    mass = {}
+    ind = 0
+    for i in Tree.nodes(order = 'timeasc'):
+        children = list(Tree.children(i))
+        lenc = len(children)
+
+        if lenc == 0: # leaf
+            mass[i] = 1 
+        elif lenc == 2: #bifurcating
+            rm = mass[children[0]]
+            lm = mass[children[1]]                
+            pm = rm+lm
+
+            mass[i] = pm
+
+            k[ind] = rm
+            n[ind] = pm
+            ind += 1  
+        else: #polytomy
+            masses = [mass[i] for i in children] # sample nodes of each children
+            pm = sum(masses) # sample nodes of the parent
+            mass[i] = pm
+
+            sp = split_polytomy(masses, abeta) # it returns the random split parent-chilren masses 
+
+            start = ind
+            end = ind+lenc-1
+            k[start:end] = sp['k']
+            n[start:end] = sp['n']
+
+            ind = end
+
+    return {'splits': (n, k)}
     
 def segsites_to_trees(GM, positions = None, seqlen = None):
     '''
