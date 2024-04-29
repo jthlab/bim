@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "bim"
+version = "0.1.1"
+description = ""
+authors = ["Enes Dilber"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+tskit = "^0.5.6"
+jax = "^0.4.26"
+gmpy2 = "2.2.0a1"
+numpy = "^1.26.4"
+pandas = "^2.2.2"
+click = "^8.1.7"
+jaxlib = "^0.4.26"
+
+[tool.poetry.scripts]
+bim = "bim.cli:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

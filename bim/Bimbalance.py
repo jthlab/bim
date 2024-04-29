@@ -15,7 +15,7 @@ import tskit
 import re
 import numpy as np
 
-from utils import tree_to_splits
+from bim.utils import tree_to_splits
 
 @partial(jax.jit)
 def logBB(n, k, beta, gamma):
@@ -213,6 +213,11 @@ def Pnkb(N, beta):
     
     State = jnp.zeros(N)
     State = jax.ops.index_update(State, jax.ops.index[N-1], 1)
+    # AttributeError: module 'jax.ops' has no attribute 'index_update'
+    # Instead of ops.index_update(x, idx, vals) you should use x.at[idx].set(vals).
+    # https://github.com/google/jax/issues/11706
+
+    # State = State.at[N-1].set(1)
     lins = jnp.arange(N)
     State = State.reshape(1, N)
        
@@ -221,8 +226,9 @@ def Pnkb(N, beta):
         State = i * mean_ling_im1
         probs = lins * State # weight the probs with size (Durett forward split)
         probs /= jnp.sum(probs)
-        State += jnp.matmul(probs, P)      
+        State += jnp.matmul(probs, P)
         State = jax.ops.index_update(State, jax.ops.index[-i], 0)
+        # State = State.at[-i].set(0)      
         return (State / (i + 1),) * 2
 
     _, mean_ling = lax.scan(loop_body, mean_ling, jnp.arange(1, N))
