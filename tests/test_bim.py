@@ -12,10 +12,10 @@ def test_check_stats():
     with pytest.raises(ValueError):
         check_stats(['not_a_valid_stat'])
     
-    assert isinstance(check_stats(["all"]), list)
-    assert sorted(check_stats(["all"])) == sorted(list(set(tstats + sstats)))
-    assert check_stats(["Colless"]) == ["Colless"]
-    assert sorted(check_stats(["Colless", "FayH"])) == sorted(["FayH", "Colless"])
+    assert isinstance(check_stats(tuple(["all"])), list)
+    assert sorted(check_stats(tuple(["all"]))) == sorted(list(set(tstats + sstats)))
+    assert check_stats(tuple(["Colless"])) == ["Colless"]
+    assert sorted(check_stats(tuple(["Colless", "FayH"]))) == sorted(["FayH", "Colless"])
 
 def test_main():
     bim_df = pd.read_csv(os.path.join(data_dir, "bim.csv"), comment="#")

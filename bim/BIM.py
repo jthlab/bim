@@ -24,7 +24,7 @@ def check_stats(
 
     Parameters
     ----------
-    stat : list(str)
+    stat : tuple(str)
         user provided stats
     supported_stats : list(str)
         supported stats
@@ -41,7 +41,7 @@ def check_stats(
 
     """
     diff = set(stat).difference(set(supported_stats))
-    if stat == ["all"]:
+    if stat == tuple(["all"]):
         return supported_stats
     elif len(diff) > 0:
         raise ValueError(f"{','.join(list(diff))} not in {','.join(supported_stats)}")
