@@ -41,7 +41,7 @@ def check_stats(
 
     """
     diff = set(stat).difference(set(supported_stats))
-    if stat == ['all']:
+    if stat == ["all"]:
         return supported_stats
     elif len(diff) > 0:
         raise ValueError(f"{','.join(list(diff))} not in {','.join(supported_stats)}")
@@ -342,7 +342,7 @@ def main(
         weights=weights,
         abeta=abeta,
     )
-    
+
     df = []
     for path in tree_paths:
         ts = tskit.load(path)
