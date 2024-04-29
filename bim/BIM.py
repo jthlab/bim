@@ -46,7 +46,7 @@ def check_stats(
     elif len(diff) > 0:
         raise ValueError(f"{','.join(list(diff))} not in {','.join(supported_stats)}")
     else:
-        return list(set(stat))
+        return sorted(list(set(stat)))
 
 
 class tree_neutrality:
@@ -253,7 +253,7 @@ class tree_neutrality:
 def main(
     tree_paths,
     n,
-    stat,
+    stat=['all'],
     wsz=None,
     ssz=None,
     tsz=None,
@@ -302,6 +302,10 @@ def main(
         l2 penalty for beta-SFS likelihood.
     treew: str
         weighting method for beta-Tree likelihood. split, branch or None.
+
+    Returns
+    -------
+        pd.DataFrame
     """
 
     stats = check_stats(stat)
@@ -356,6 +360,7 @@ def main(
     f.write("#" + " ".join(sys.argv) + "\n")
     df.to_csv(f, index=False)
     f.close()
+    return df
 
 
 if __name__ == "__main__":

@@ -18,6 +18,9 @@ jaxlib = "^0.4.26"
 [tool.poetry.scripts]
 bim = "bim.cli:cli"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
